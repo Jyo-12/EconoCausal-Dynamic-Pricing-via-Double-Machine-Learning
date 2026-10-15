@@ -3,6 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+<<<<<<< HEAD
+=======
+.ipynb_checkpoints/
+__pycache__/
+.env
+
+>>>>>>> db3b00c (Added data cleaning notebook)
 # C extensions
 *.so
 
@@ -218,3 +225,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+<<<<<<< HEAD
+=======
+
+data/
+cleaned_data/transactions_clean.csv
+cleaned_data/promotions_clean.csv
+
+data/
+cleaned_data/
+>>>>>>> db3b00c (Added data cleaning notebook)
