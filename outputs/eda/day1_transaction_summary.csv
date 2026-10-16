@@ -1,0 +1,12 @@
+Metric,Value
+Total transaction rows,2595732
+Unique households,2500
+Unique baskets,276484
+Unique products,92339
+Unique stores,582
+Distinct weeks,102
+Rows with zero quantity,14466
+Rows with zero sales,18850
+Rows with negative sales,0
+Rows with quantity above 100,23136
+Duplicate rows within chunks,0
