@@ -1,0 +1,11 @@
+ROLE,VARIABLE,CURRENT_STATUS,NOTES
+Treatment,PRICE_PROXY,Proposed candidate,TOTAL_SALES / TOTAL_QUANTITY when quantity is positive; not verified as actual shelf price
+Outcome,TOTAL_QUANTITY,Proposed candidate,Quantity purchased at product-store-week level; zero-purchase periods may be absent
+Control,PRODUCT_ID,Candidate,Product differences; final encoding/representation depends on model design
+Control,STORE_ID,Candidate,Store differences; final encoding/representation depends on model design
+Control,WEEK_NO,Candidate,Time effects; final encoding/representation depends on model design
+Additional control,display,Pending,Promotion data has incomplete exact-key coverage
+Additional control,mailer,Pending,Promotion data has incomplete exact-key coverage
+Additional control,TOTAL_RETAIL_DISC,Pending,"Retail discounts may affect the observed price, so  need to determine whether this variable should be included separately from the price treatment."
+Additional control,TOTAL_COUPON_DISC,Pending,"Coupon discounts may influence the effective price paid by customers, so  need to determine whether their effect is already captured in the price proxy."
+Additional control,TOTAL_COUPON_MATCH_DISC,Pending,"Coupon-match discounts may overlap with other discount measures, so need to check whether this variable provides additional information or duplicates existing features."
