@@ -1,11 +1,482 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Papa from "papaparse";
 import Plot from "react-plotly.js";
+import {
+  calculateQiniCurve,
+  getGainAtFraction,
+  parseUpliftCurve,
+  summarizeUpliftCurve,
+} from "./uplift.js";
 import "./App.css";
 
 const SAMPLE_LIMIT = 2000;
 const PREVIEW_LIMIT = 8;
+const UPLIFT_CURVE_SPECS = [
+  {
+    key: "display",
+    name: "Display Promotion",
+    filename: "display_qini_curve.csv",
+    color: "#34785b",
+    treatmentColumn: "display_exposed",
+    outcomeColumn: "SALES_VALUE",
+    effectColumn: "estimated_display_effect",
+  },
+  {
+    key: "mailer",
+    name: "Mailer Promotion",
+    filename: "mailer_qini_curve.csv",
+    color: "#bd7429",
+    treatmentColumn: "mailer_exposed",
+    outcomeColumn: "SALES_VALUE",
+    effectColumn: "estimated_mailer_ite",
+  },
+];
+const UPLIFT_TARGET_FRACTIONS = [0.25, 0.5, 0.75];
+const gainFormat = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+});
+const fractionFormat = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 1,
+});
+let upliftLoadPromise;
+
+function loadUpliftCurves() {
+  if (!upliftLoadPromise) {
+    upliftLoadPromise = Promise.all(
+      UPLIFT_CURVE_SPECS.map(async (spec) => {
+        const sources = [
+          {
+            directory: "outputs/Uplift_Curve",
+            url: `${import.meta.env.BASE_URL}outputs/Uplift_Curve/${spec.filename}`,
+          },
+          {
+            directory: "outputs/model_training",
+            url: `${import.meta.env.BASE_URL}outputs/model_training/${spec.filename}`,
+          },
+        ];
+
+        const errors = [];
+        for (const source of sources) {
+          try {
+            const response = await fetch(source.url);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return {
+              key: spec.key,
+              curve: {
+                ...spec,
+                ...parseUpliftCurve(await response.text()),
+              },
+            };
+          } catch (error) {
+            errors.push(`${source.directory}: ${error.message}`);
+          }
+        }
+
+        return {
+          key: spec.key,
+          message: `${spec.filename} could not be loaded (${errors.join("; ")}).`,
+        };
+      })
+    ).then((results) => {
+      const curves = {};
+      const messages = [];
+      results.forEach((result) => {
+        if (result.curve) curves[result.key] = result.curve;
+        if (result.message) messages.push(result.message);
+      });
+      return { curves, messages };
+    });
+  }
+
+  return upliftLoadPromise;
+}
+
+function getUploadedCurveData(columns, rowsByPromotion, source, parseErrors) {
+  const columnLookup = new Map(
+    columns.map((column) => [column.trim().toLowerCase(), column])
+  );
+  const curves = {};
+  const messages = [];
+
+  UPLIFT_CURVE_SPECS.forEach((spec) => {
+    const required = [
+      spec.treatmentColumn,
+      spec.outcomeColumn,
+      spec.effectColumn,
+    ];
+    const resolved = required.map((column) =>
+      columnLookup.get(column.toLowerCase())
+    );
+    const missing = required.filter(
+      (_, index) => !resolved[index]
+    );
+
+    if (missing.length > 0) {
+      messages.push(
+        `${spec.name} needs these CSV columns: ${missing.join(", ")}.`
+      );
+      return;
+    }
+
+    try {
+      curves[spec.key] = {
+        ...spec,
+        ...calculateQiniCurve(rowsByPromotion[spec.key]),
+      };
+    } catch (error) {
+      messages.push(`${spec.name}: ${error.message}`);
+    }
+  });
+
+  return {
+    curves,
+    messages,
+    warnings:
+      parseErrors > 0
+        ? [`${parseErrors.toLocaleString()} CSV parsing issue(s) occurred while reading the upload.`]
+        : [],
+    loading: false,
+    source,
+  };
+}
+
+function UpliftCurveChart({ title, subtitle, curves }) {
+  return (
+    <div className="chart-panel uplift-chart">
+      <h3>{title}</h3>
+      <p className="chart-note">{subtitle}</p>
+      <Plot
+        data={curves.map((curve) => ({
+          x: curve.points.map((point) => point.fractionTargeted),
+          y: curve.points.map((point) => point.qiniGain),
+          type: "scattergl",
+          mode: "lines",
+          name: curve.name,
+          line: { color: curve.color, width: 2 },
+          hovertemplate:
+            "<b>%{fullData.name}</b><br>" +
+            "Fraction of observations: %{x:.1%}<br>" +
+            "Cumulative gain: %{y:,.2f} (source units)<extra></extra>",
+        }))}
+        layout={{
+          autosize: true,
+          height: 360,
+          margin: { l: 80, r: 25, t: 12, b: 65 },
+          paper_bgcolor: "#ffffff",
+          plot_bgcolor: "#ffffff",
+          font: { family: "DM Sans, sans-serif", color: "#344054" },
+          hovermode: "x unified",
+          xaxis: {
+            title: { text: "Fraction of observations targeted" },
+            range: [0, 1],
+            tickformat: ".0%",
+            gridcolor: "#edf0eb",
+          },
+          yaxis: {
+            title: { text: "Cumulative gain (source units)" },
+            automargin: true,
+            tickformat: ",.0f",
+            gridcolor: "#edf0eb",
+            zerolinecolor: "#aebcaf",
+          },
+          showlegend: curves.length > 1,
+          legend: { orientation: "h", y: -0.25 },
+        }}
+        config={{ responsive: true, displaylogo: false }}
+        style={{ width: "100%", height: "360px" }}
+        useResizeHandler
+      />
+    </div>
+  );
+}
+
+function UpliftAnalysis({ uploadedData }) {
+  const [curveData, setCurveData] = useState({
+    curves: {},
+    messages: [],
+    loading: true,
+  });
+
+  useEffect(() => {
+    let active = true;
+    loadUpliftCurves()
+      .then((loadedData) => {
+        if (active) setCurveData({ ...loadedData, loading: false });
+      })
+      .catch((error) => {
+        if (active) {
+          setCurveData({
+            curves: {},
+            messages: [`Could not load promotion curves: ${error.message}`],
+            loading: false,
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const activeData = uploadedData || curveData;
+  const { curves, messages, loading, source, warnings = [] } = activeData;
+
+  const summaries = Object.values(curves).map((curve) => ({
+    ...curve,
+    summary: summarizeUpliftCurve(curve.points),
+  }));
+  const dataWarnings = summaries.flatMap((curve) =>
+    curve.warnings.map((warning) => `${curve.name}: ${warning}`)
+  );
+  const display = curves.display;
+  const mailer = curves.mailer;
+  const comparisons =
+    display && mailer
+      ? UPLIFT_TARGET_FRACTIONS.map((fractionTargeted) => {
+          const displayGain = getGainAtFraction(
+            display.points,
+            fractionTargeted
+          );
+          const mailerGain = getGainAtFraction(
+            mailer.points,
+            fractionTargeted
+          );
+
+          if (displayGain === null || mailerGain === null) {
+            return { fractionTargeted, unavailable: true };
+          }
+
+          const difference = displayGain - mailerGain;
+          return {
+            fractionTargeted,
+            displayGain,
+            mailerGain,
+            difference,
+            leader:
+              difference === 0
+                ? "Equal"
+                : difference > 0
+                  ? "Display Promotion"
+                  : "Mailer Promotion",
+          };
+        })
+      : [];
+  const higherGainCounts = comparisons.reduce(
+    (counts, comparison) => {
+      if (comparison.leader === "Display Promotion") counts.display += 1;
+      if (comparison.leader === "Mailer Promotion") counts.mailer += 1;
+      return counts;
+    },
+    { display: 0, mailer: 0 }
+  );
+  const comparableCount = comparisons.filter(
+    (comparison) => !comparison.unavailable
+  ).length;
+
+  return (
+    <section className="results uplift-results">
+      <div className="results-heading">
+        <div>
+          <p className="eyebrow">
+            {source ? "CALCULATED FROM UPLOADED DATA" : "SAVED CURVE RESULTS"}
+          </p>
+          <h2>Promotion Uplift Analysis</h2>
+        </div>
+        <span className="tag">
+          {source ? source : "Exploratory Qini-style analysis"}
+        </span>
+      </div>
+
+      {loading && (
+        <div className="empty" role="status">
+          {source
+            ? `Calculating promotion curves from ${source}…`
+            : "Loading saved promotion curve outputs…"}
+        </div>
+      )}
+
+      {messages.length > 0 && (
+        <div className="uplift-warning" role="status">
+          <strong>
+            {source
+              ? "The uploaded CSV could not produce all promotion curves."
+              : "Some promotion curves could not be loaded."}
+          </strong>
+          <ul>
+            {messages.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+          {source ? (
+            <p>
+              Upload a CSV with the required treatment indicator,{" "}
+              <code>SALES_VALUE</code>, and saved ITE column for each
+              promotion. The analysis does not estimate ITEs or retrain a
+              model.
+            </p>
+          ) : (
+            <p>
+              Restore the missing or invalid CSV in either output folder. To
+              regenerate it, run <code>notebooks/UpliftCurve.ipynb</code> with
+              its saved ITE and outcome inputs; that notebook writes to{" "}
+              <code>outputs/model_training</code> and does not retrain the
+              model.
+            </p>
+          )}
+        </div>
+      )}
+      {(dataWarnings.length > 0 || warnings.length > 0) && (
+        <div className="uplift-warning" role="status">
+          <strong>Some curve data needed cleaning.</strong>
+          <ul>
+            {[...dataWarnings, ...warnings].map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {summaries.length > 0 && (
+        <>
+          <div className="uplift-metrics">
+            {summaries.flatMap((curve) => [
+              {
+                key: `${curve.key}-final`,
+                title: `${curve.name} final cumulative gain`,
+                value: gainFormat.format(curve.summary.finalGain),
+                detail: `At ${fractionFormat.format(curve.summary.finalFraction)} targeted · source units`,
+              },
+              {
+                key: `${curve.key}-maximum`,
+                title: `${curve.name} maximum observed gain`,
+                value: gainFormat.format(curve.summary.maximumGain),
+                detail: `At ${fractionFormat.format(curve.summary.maximumFraction)} targeted · source units`,
+              },
+            ]).map((metric) => (
+              <article className="uplift-metric" key={metric.key}>
+                <span>{metric.title}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.detail}</small>
+              </article>
+            ))}
+          </div>
+
+          {display && (
+            <div className="uplift-chart-grid">
+              <UpliftCurveChart
+                title="Display Promotion — Cumulative Gain Curve"
+                subtitle={
+                  source
+                    ? `Ranked by ${UPLIFT_CURVE_SPECS[0].effectColumn} in the uploaded data.`
+                    : "Ranked by saved estimated display treatment effects."
+                }
+                curves={[display]}
+              />
+              {mailer && (
+                <UpliftCurveChart
+                  title="Mailer Promotion — Cumulative Gain Curve"
+                  subtitle={
+                    source
+                      ? `Ranked by ${UPLIFT_CURVE_SPECS[1].effectColumn} in the uploaded data.`
+                      : "Ranked by saved estimated mailer treatment effects."
+                  }
+                  curves={[mailer]}
+                />
+              )}
+            </div>
+          )}
+          {!display && mailer && (
+            <div className="uplift-chart-grid">
+              <UpliftCurveChart
+                title="Mailer Promotion — Cumulative Gain Curve"
+                subtitle={
+                  source
+                    ? `Ranked by ${UPLIFT_CURVE_SPECS[1].effectColumn} in the uploaded data.`
+                    : "Ranked by saved estimated mailer treatment effects."
+                }
+                curves={[mailer]}
+              />
+            </div>
+          )}
+
+          {display && mailer && (
+            <>
+              <UpliftCurveChart
+                title="Display vs. Mailer — Cumulative Gain Comparison"
+                subtitle="Both promotions use the same target-fraction and cumulative-gain axes."
+                curves={[display, mailer]}
+              />
+              <div className="uplift-comparison">
+                <div>
+                  <h3>Higher cumulative gain at selected targeting fractions</h3>
+                  <p className="chart-note">
+                    Interpolated from the loaded curve points; differences are
+                    in source units.
+                  </p>
+                </div>
+                <div className="uplift-comparison-list">
+                  {comparisons.map((comparison) => (
+                    <div
+                      className="uplift-comparison-row"
+                      key={comparison.fractionTargeted}
+                    >
+                      <strong>
+                        {fractionFormat.format(comparison.fractionTargeted)}{" "}
+                        targeted
+                      </strong>
+                      <span>
+                        {comparison.unavailable
+                          ? "Not comparable at this fraction"
+                          : comparison.leader === "Equal"
+                            ? "Equal observed cumulative gain"
+                            : `${comparison.leader} higher by ${gainFormat.format(
+                                Math.abs(comparison.difference)
+                              )}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="chart-note uplift-interpretation">
+                  {comparableCount === 0
+                    ? "The curves do not overlap any of the selected targeting fractions."
+                    : higherGainCounts.mailer > higherGainCounts.display
+                      ? "Mailer Promotion has the higher cumulative gain at more of the selected fractions."
+                      : higherGainCounts.display > higherGainCounts.mailer
+                        ? "Display Promotion has the higher cumulative gain at more of the selected fractions."
+                        : "The selected comparable fractions are evenly split, or show equal gain, between the promotions."}{" "}
+                  This describes these exploratory curves only; it does not
+                  establish production superiority.
+                </p>
+              </div>
+            </>
+          )}
+
+          <div className="uplift-caveat">
+            <h3>How to read these curves</h3>
+            <p>
+              Each curve ranks product-store-week observations by the saved
+              estimated treatment effect (or the uploaded effect column), then accumulates treated{" "}
+              <code>SALES_VALUE</code> less control outcomes adjusted by the
+              treatment/control count ratio. Cumulative gain is reported in
+              source units; it is not revenue, profit, or an individual
+              treatment-effect estimate.
+            </p>
+            <p>
+              These are exploratory Qini-style analyses of observed outcomes
+              and saved ITE rankings. The plots do not include held-out or
+              off-policy validation or uncertainty intervals, so they are not
+              proof of validated causal performance.
+            </p>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 function App() {
   const [file, setFile] = useState(null);
@@ -16,6 +487,7 @@ function App() {
   const [rows, setRows] = useState([]);
   const [sampleCount, setSampleCount] = useState(0);
   const [chartData, setChartData] = useState(null);
+  const [uploadedCurveData, setUploadedCurveData] = useState(null);
 
   function handleFileChange(event) {
     const selected = event.target.files?.[0];
@@ -26,6 +498,7 @@ function App() {
       setHeaders([]);
       setRows([]);
       setChartData(null);
+      setUploadedCurveData(null);
       setMessage("Please select a CSV file.");
       return;
     }
@@ -35,6 +508,7 @@ function App() {
     setRows([]);
     setChartData(null);
     setSampleCount(0);
+    setUploadedCurveData(null);
     setMessage("");
   }
 
@@ -54,32 +528,87 @@ function App() {
     }
 
     setLoading(true);
-    setMessage("Reading a small sample of the CSV...");
+    setMessage("Reading the CSV and calculating promotion curves...");
     setHeaders([]);
     setRows([]);
     setChartData(null);
+    setUploadedCurveData({
+      curves: {},
+      messages: [],
+      warnings: [],
+      loading: true,
+      source: file.name,
+    });
+
+    const currentUploadRows = [];
+    let currentUploadColumns = [];
+    let currentUploadRowCount = 0;
+    let currentUploadParseErrors = 0;
+    const currentUploadCurveRows = Object.fromEntries(
+      UPLIFT_CURVE_SPECS.map((spec) => [spec.key, []])
+    );
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      preview: SAMPLE_LIMIT,
+      worker: true,
+      step: (result) => {
+        const row = result.data;
+        const columnNames = result.meta?.fields || [];
+        const columnLookup = new Map(
+          columnNames.map((column) => [column.trim().toLowerCase(), column])
+        );
 
-      complete: (results) => {
-        const parsedRows = results.data || [];
-        const columnNames = results.meta?.fields || [];
+        if (columnNames.length > 0) {
+          currentUploadColumns = columnNames;
+        }
+
+        if (currentUploadRows.length < SAMPLE_LIMIT) {
+          currentUploadRows.push(row);
+        }
+        currentUploadRowCount += 1;
+        currentUploadParseErrors += result.errors?.length || 0;
+
+        UPLIFT_CURVE_SPECS.forEach((spec) => {
+          const treatmentColumn = columnLookup.get(
+            spec.treatmentColumn.toLowerCase()
+          );
+          const outcomeColumn = columnLookup.get(
+            spec.outcomeColumn.toLowerCase()
+          );
+          const effectColumn = columnLookup.get(
+            spec.effectColumn.toLowerCase()
+          );
+
+          if (treatmentColumn && outcomeColumn && effectColumn) {
+            currentUploadCurveRows[spec.key].push({
+              treatment: row[treatmentColumn],
+              outcome: row[outcomeColumn],
+              effect: row[effectColumn],
+            });
+          }
+        });
+      },
+
+      complete: () => {
+        const parsedRows = currentUploadRows;
+        const columnNames = currentUploadColumns;
 
         setHeaders(columnNames);
         setRows(parsedRows.slice(0, PREVIEW_LIMIT));
         setSampleCount(parsedRows.length);
 
-        if (results.errors?.length) {
-          console.warn("CSV parsing warnings:", results.errors);
-        }
-
-        if (!columnNames.length || !parsedRows.length) {
+        if (!columnNames.length || currentUploadRowCount === 0) {
           setMessage(
             "No usable rows or headers were found. Check the CSV format."
           );
+          setUploadedCurveData({
+            curves: {},
+            messages: ["The uploaded CSV is empty or has no readable rows."],
+            warnings: [],
+            loading: false,
+            source: file.name,
+          });
           setLoading(false);
           return;
         }
@@ -161,10 +690,18 @@ function App() {
           "PRICE_PROXY",
         ].filter((name) => !findColumn(name));
 
+        const curveResults = getUploadedCurveData(
+          columnNames,
+          currentUploadCurveRows,
+          file.name,
+          currentUploadParseErrors
+        );
+        setUploadedCurveData(curveResults);
         setMessage(
-          `Loaded ${parsedRows.length.toLocaleString()} sample rows. ` +
+          `Processed ${currentUploadRowCount.toLocaleString()} rows; ` +
+            `the data preview uses the first ${parsedRows.length.toLocaleString()}. ` +
             (missing.length
-              ? `Columns not found: ${missing.join(", ")}.`
+              ? `Preview columns not found: ${missing.join(", ")}.`
               : "All expected chart columns were found.")
         );
 
@@ -173,6 +710,13 @@ function App() {
 
       error: (error) => {
         setMessage(`Could not read CSV: ${error.message}`);
+        setUploadedCurveData({
+          curves: {},
+          messages: [`Could not read the uploaded CSV: ${error.message}`],
+          warnings: [],
+          loading: false,
+          source: file.name,
+        });
         setLoading(false);
       },
     });
@@ -250,7 +794,7 @@ function App() {
           </div>
 
           <button className="primary-button" type="submit" disabled={loading}>
-            {loading ? "Reading sample..." : "Preview data & create charts"}
+            {loading ? "Processing CSV..." : "Preview data & create charts"}
             <span>→</span>
           </button>
 
@@ -260,11 +804,25 @@ function App() {
             </p>
           )}
 
-          <p className="footnote">
-            The browser reads at most {SAMPLE_LIMIT.toLocaleString()} data rows
-            for this preview. This is not a full-dataset analysis or causal
-            estimate.
-          </p>
+          <div className="footnote">
+            <strong>For promotion uplift analysis</strong>
+            <p>Your CSV must include these columns:</p>
+            <ul>
+              <li>
+                <strong>Display:</strong> display_exposed, SALES_VALUE,
+                estimated_display_effect
+              </li>
+              <li>
+                <strong>Mailer:</strong> mailer_exposed, SALES_VALUE,
+                estimated_mailer_ite
+              </li>
+            </ul>
+            <p>
+              The curves use all uploaded rows. Preview charts use at most{" "}
+              {SAMPLE_LIMIT.toLocaleString()} rows. Uploading does not train a
+              model.
+            </p>
+          </div>
         </form>
 
         <aside className="panel overview">
@@ -428,6 +986,8 @@ function App() {
           )}
         </section>
       )}
+
+      <UpliftAnalysis uploadedData={uploadedCurveData} />
 
       <footer>
         EconoCausal · Research prototype · Causal assumptions require validation

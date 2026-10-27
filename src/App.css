@@ -316,9 +316,38 @@ input {
 
 .footnote {
   margin: 18px 0 0;
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: #f7f9f6;
   color: #879187;
   font-size: 11px;
-  line-height: 1.8;
+  line-height: 1.7;
+  text-align: left;
+}
+
+.footnote > strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #405548;
+  font-size: 12px;
+}
+
+.footnote p {
+  margin: 4px 0 0;
+}
+
+.footnote ul {
+  margin: 5px 0 8px;
+  padding-left: 18px;
+}
+
+.footnote li {
+  padding: 2px 0;
+  overflow-wrap: anywhere;
+}
+
+.footnote li strong {
+  color: #52695c;
 }
 
 /* Workflow overview */
@@ -451,6 +480,164 @@ input {
   line-height: 1.7;
 }
 
+.uplift-results .results-heading {
+  margin-bottom: 18px;
+}
+
+.uplift-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.uplift-metric {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #e1e8df;
+  border-radius: 13px;
+  background: #fbfcfa;
+}
+
+.uplift-metric span,
+.uplift-metric small {
+  display: block;
+  color: #718075;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.uplift-metric strong {
+  display: block;
+  margin: 9px 0 5px;
+  color: #203d2e;
+  font: 800 clamp(18px, 2vw, 24px) "Manrope", sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.uplift-metric small {
+  color: #879187;
+  font-size: 10px;
+}
+
+.uplift-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+}
+
+.uplift-chart-grid .chart-panel {
+  margin-top: 0;
+}
+
+.uplift-chart-grid .chart-panel h3,
+.uplift-comparison h3,
+.uplift-caveat h3 {
+  font: 700 16px "Manrope", sans-serif;
+}
+
+.uplift-chart {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.uplift-chart .js-plotly-plot {
+  flex: 0 0 360px;
+  width: 100%;
+  height: 360px;
+}
+
+.uplift-comparison,
+.uplift-caveat {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid #e1e8df;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.uplift-comparison .chart-note {
+  margin: 6px 0 0;
+}
+
+.uplift-comparison-list {
+  margin-top: 14px;
+}
+
+.uplift-comparison-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0eb;
+  font-size: 12px;
+}
+
+.uplift-comparison-row:last-child {
+  border-bottom: 0;
+}
+
+.uplift-comparison-row strong {
+  color: #35473b;
+}
+
+.uplift-comparison-row span {
+  color: #52695c;
+  text-align: right;
+}
+
+.uplift-interpretation {
+  margin-top: 10px;
+}
+
+.uplift-caveat {
+  background: #f8faf7;
+}
+
+.uplift-caveat h3 {
+  margin: 0 0 9px;
+}
+
+.uplift-caveat p,
+.uplift-warning {
+  color: #627267;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.uplift-caveat p + p {
+  margin-top: 8px;
+}
+
+.uplift-warning {
+  margin: 0 0 17px;
+  padding: 13px 15px;
+  border: 1px solid #eddfc1;
+  border-radius: 11px;
+  background: #fff9eb;
+  color: #735b31;
+}
+
+.uplift-warning ul {
+  margin: 7px 0;
+  padding-left: 20px;
+}
+
+.uplift-warning p {
+  margin-top: 7px;
+}
+
+.uplift-warning code,
+.uplift-caveat code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #eef2ec;
+  color: #405548;
+  font: 11px "DM Sans", sans-serif;
+}
+
 /* Footer */
 
 footer {
@@ -465,6 +652,14 @@ footer {
 
 @media (max-width: 800px) {
   .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .uplift-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .uplift-chart-grid {
     grid-template-columns: 1fr;
   }
 
@@ -505,7 +700,26 @@ footer {
     flex-direction: column;
   }
 
+  .uplift-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .uplift-comparison-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .uplift-comparison-row span {
+    text-align: left;
+  }
+
   .chart-panel {
     padding: 12px;
+  }
+
+  .uplift-chart .js-plotly-plot {
+    flex-basis: 330px;
+    height: 330px;
   }
 }
