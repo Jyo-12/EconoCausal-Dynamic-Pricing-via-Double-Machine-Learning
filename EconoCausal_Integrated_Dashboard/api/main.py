@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pricing.routes import router as pricing_router
 
 ROOT = Path(os.getenv("ECONOCAUSAL_PROJECT_ROOT", Path(__file__).resolve().parent.parent)).resolve()
 DEFAULT = ROOT / "Output" / "causal output" / "Output" / "transaction_weekly_final.csv"
@@ -15,6 +16,7 @@ RESULTS = Path(os.getenv("ECONOCAUSAL_RESULTS_DIR", str(ROOT / "outputs" / "caus
 CHUNK = int(os.getenv("ECONOCAUSAL_CHUNK_SIZE", "50000"))
 app = FastAPI(title="EconoCausal API", version="1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173","http://127.0.0.1:5173"], allow_methods=["*"], allow_headers=["*"])
+app.include_router(pricing_router)
 
 def clean(v):
     if v is None or pd.isna(v): return None
