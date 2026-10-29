@@ -1,0 +1,511 @@
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #24352e;
+  background: #f4f6f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 400;
+  font-optical-sizing: auto;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f4f6f2;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.dashboard {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 30px clamp(18px, 4vw, 58px) 38px;
+}
+
+/* Header */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e1e7df;
+}
+
+.brand-mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #173d32;
+  color: #fff;
+  font: 800 15px "Manrope", sans-serif;
+}
+
+.topbar h1 {
+  margin: 0;
+  font: 800 22px "Manrope", sans-serif;
+  letter-spacing: -0.7px;
+}
+
+.topbar p {
+  margin: 4px 0 0;
+  color: #77857b;
+  font-size: 12px;
+}
+
+.status {
+  margin-left: auto;
+  padding: 9px 14px;
+  border: 1px solid #dce5dc;
+  border-radius: 30px;
+  background: #fff;
+  color: #52695c;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Hero */
+
+.hero {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 56px 0 40px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #36775c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+}
+
+.hero h2 {
+  max-width: 700px;
+  margin: 0 auto 16px;
+  font: 800 clamp(30px, 4vw, 46px) "Manrope", sans-serif;
+  line-height: 1.18;
+  letter-spacing: -1.8px;
+}
+
+.hero-copy {
+  max-width: 590px;
+  margin: 0 auto;
+  color: #728076;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* Main layout */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.panel,
+.results {
+  min-width: 0;
+  padding: clamp(22px, 2.5vw, 34px);
+  border: 1px solid #e2e8df;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgb(32 57 41 / 4%);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.step,
+.workflow-number {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #e8f1e9;
+  color: #286347;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.panel h3 {
+  margin: 0;
+  font: 700 19px "Manrope", sans-serif;
+  letter-spacing: -0.4px;
+}
+
+.panel-heading p {
+  margin: 6px 0 0;
+  color: #7c897e;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* CSV upload */
+
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 30px 18px;
+  border: 1.5px dashed #b9cec0;
+  border-radius: 15px;
+  background: #f8faf7;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.upload-area:hover {
+  border-color: #5b9271;
+  background: #f1f7f1;
+}
+
+.upload-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #e4f0e5;
+  color: #286347;
+  font-size: 27px;
+}
+
+.upload-area strong {
+  color: #2a3e32;
+  font-size: 14px;
+}
+
+.upload-area > span:last-of-type {
+  color: #839084;
+  font-size: 12px;
+}
+
+.upload-area input {
+  width: 100%;
+  max-width: 250px;
+  color: #59675c;
+  font-size: 12px;
+}
+
+.file-info {
+  margin: 14px 0 0;
+  padding: 13px 15px;
+  border-radius: 11px;
+  background: #eef5ee;
+  color: #3d6650;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* Budget field */
+
+.field {
+  margin-top: 26px;
+}
+
+.field > label {
+  display: block;
+  margin-bottom: 10px;
+  color: #35473b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.budget-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 15px;
+  border: 1px solid #d9e2d8;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.budget-input:focus-within {
+  border-color: #548568;
+  box-shadow: 0 0 0 3px rgb(84 133 104 / 10%);
+}
+
+.budget-input > span {
+  color: #728276;
+}
+
+.budget-input input {
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #24352e;
+}
+
+/* Buttons and messages */
+
+.primary-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  margin-top: 22px;
+  padding: 15px 18px;
+  border: 0;
+  border-radius: 11px;
+  background: #214d3b;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.primary-button:hover {
+  background: #2e674c;
+  transform: translateY(-1px);
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+
+.feedback {
+  margin: 15px 0 0;
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: #edf5ee;
+  color: #2d6748;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.footnote {
+  margin: 18px 0 0;
+  color: #879187;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+/* Workflow overview */
+
+.overview > .eyebrow {
+  margin-bottom: 10px;
+}
+
+.overview-copy {
+  margin: 9px 0 24px;
+  color: #7a877d;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.workflow-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 19px 0;
+  border-bottom: 1px solid #edf0eb;
+}
+
+.workflow-number {
+  width: 38px;
+  height: 38px;
+}
+
+.workflow-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.workflow-item strong {
+  color: #35473b;
+  font-size: 13px;
+}
+
+.workflow-item p {
+  margin: 6px 0 0;
+  color: #839084;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.tag {
+  padding: 6px 10px;
+  border-radius: 30px;
+  background: #e6f2e8;
+  color: #32724c;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.tag.pending {
+  background: #f0f2ed;
+  color: #7b867c;
+}
+
+/* Results and CSV preview */
+
+.results {
+  margin-top: 26px;
+}
+
+.results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.results-heading h2 {
+  margin: 0;
+  font: 700 24px "Manrope", sans-serif;
+}
+
+.table-wrap {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid #e3e9e1;
+  border-radius: 12px;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 13px 15px;
+  border-bottom: 1px solid #edf0eb;
+  text-align: left;
+}
+
+.preview-table th {
+  background: #f3f6f1;
+  color: #415448;
+}
+
+.preview-table td {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Plotly charts */
+
+.chart-panel {
+  min-width: 0;
+  margin-top: 26px;
+  padding: 22px;
+  border: 1px solid #e3e9e1;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.chart-panel h3 {
+  margin: 0;
+  font: 700 18px "Manrope", sans-serif;
+}
+
+.chart-note {
+  color: #7b897e;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* Footer */
+
+footer {
+  padding: 34px 0 8px;
+  color: #859087;
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+/* Responsive layout */
+
+@media (max-width: 800px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 40px 0 30px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard {
+    padding: 18px 14px 28px;
+  }
+
+  .topbar h1 {
+    font-size: 19px;
+  }
+
+  .status {
+    display: none;
+  }
+
+  .hero h2 {
+    letter-spacing: -1px;
+  }
+
+  .panel,
+  .results {
+    padding: 20px;
+    border-radius: 15px;
+  }
+
+  .workflow-item {
+    flex-wrap: wrap;
+  }
+
+  .results-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart-panel {
+    padding: 12px;
+  }
+}

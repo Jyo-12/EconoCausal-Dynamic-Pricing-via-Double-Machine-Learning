@@ -4,3 +4,17 @@ __pycache__/
 data/
 cleaned_data/
 
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# Vite build output
+dist/
+**/dist/
+
+# Python cache and test artifacts
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+*.py[cod]
