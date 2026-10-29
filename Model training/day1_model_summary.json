@@ -1,0 +1,18 @@
+{
+    "project": "EconoCausal",
+    "day": 1,
+    "model": "EconML CausalForestDML",
+    "nuisance_estimators": "Random Forest",
+    "treatment": "display_exposed",
+    "outcome": "SALES_VALUE",
+    "modeling_unit": "product-store-week",
+    "sample_size": 100000,
+    "treatment_off": 50877,
+    "treatment_on": 49123,
+    "ite_mean": -0.29249375499239844,
+    "ite_std": 0.4088260346845879,
+    "ite_min": -1.2287838461127012,
+    "ite_median": -0.2370447683601739,
+    "ite_max": 0.8924011115945661,
+    "interpretation": "Exploratory estimates only; further confounding control and validation are required before causal conclusions."
+}
