@@ -93,3 +93,44 @@ def test_request_without_historical_price_support_can_run(payload):
 
     assert response.success
     assert response.bounds_satisfied
+
+def test_optimization_response_includes_allocation_matrix(payload):
+    request = OptimizationRequest.model_validate(payload)
+    response = optimize(request)
+
+    assert response.allocation_matrix is not None
+
+    matrix = response.allocation_matrix
+    assert matrix.household_ids == [101]
+    assert matrix.product_ids == ["p1", "p2"]
+    assert len(matrix.values) == 1
+    assert len(matrix.values[0]) == 2
+
+    for column_index, product_id in enumerate(matrix.product_ids):
+        allocation_row = next(
+            row
+            for row in response.allocation
+            if row.product_id == product_id
+        )
+        assert matrix.values[0][column_index] == pytest.approx(
+            allocation_row.recommended_discount
+        )
+
+
+def test_optimization_matrix_represents_missing_pairs_as_null(payload):
+    payload["units"][1]["household_id"] = 102
+
+    request = OptimizationRequest.model_validate(payload)
+    response = optimize(request)
+
+    assert response.allocation_matrix is not None
+
+    matrix = response.allocation_matrix
+    assert matrix.household_ids == [101, 102]
+    assert matrix.product_ids == ["p1", "p2"]
+    assert len(matrix.values) == 2
+    assert all(len(row) == 2 for row in matrix.values)
+
+    # Only (101, p1) and (102, p2) were supplied.
+    assert matrix.values[0][1] is None
+    assert matrix.values[1][0] is None
