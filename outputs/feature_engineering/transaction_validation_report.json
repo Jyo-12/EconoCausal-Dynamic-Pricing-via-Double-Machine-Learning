@@ -1,0 +1,9 @@
+{
+  "transaction_rows": 2595732,
+  "zero_quantity_rows": 14466,
+  "zero_sales_rows": 18850,
+  "zero_quantity_positive_sales": 67,
+  "positive_quantity_zero_sales": 4451,
+  "quantity_above_100": 23136,
+  "quantity_above_1000": 23101
+}

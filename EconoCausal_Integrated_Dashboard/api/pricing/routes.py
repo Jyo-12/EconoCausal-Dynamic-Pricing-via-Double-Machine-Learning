@@ -33,13 +33,11 @@ class OptimizationUnitInput(BaseModel):
     def validate_discount_and_support(self) -> OptimizationUnitInput:
         if self.max_discount >= self.price:
             raise ValueError("max_discount must be less than price.")
-
         if (
             self.min_supported_price is not None
             and self.min_supported_price > self.price
         ):
             raise ValueError("min_supported_price cannot exceed price.")
-
         return self
 
 
@@ -118,10 +116,8 @@ def optimize(request: OptimizationRequest) -> OptimizationResponse:
     """Optimize discounts using explicitly supplied synthetic demand inputs."""
     unit_records = [unit.model_dump() for unit in request.units]
     contexts = pd.DataFrame(unit_records)
-
     if request.units[0].min_supported_price is None:
         contexts = contexts.drop(columns="min_supported_price")
-
     contexts.insert(
         0,
         "unit_id",
@@ -130,7 +126,6 @@ def optimize(request: OptimizationRequest) -> OptimizationResponse:
             for unit in request.units
         ],
     )
-
     try:
         result = optimize_discounts(
             data=contexts,

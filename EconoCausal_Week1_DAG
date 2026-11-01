@@ -1,0 +1,31 @@
+
+digraph {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Arial"];
+
+    Product_Context [label="Product Context", fillcolor="#DCEAFE"];
+    Store_Context [label="Store Context", fillcolor="#DCEAFE"];
+    Time_Context [label="Time / Seasonality", fillcolor="#DCEAFE"];
+    Historical_Demand [label="Historical Demand", fillcolor="#DCEAFE"];
+    Promotion_Context [label="Promotion Context", fillcolor="#DCEAFE"];
+
+    Price [label="Product Price (T)", fillcolor="#DDF4E4"];
+    Demand [label="Quantity Sold / Demand (Y)", fillcolor="#FCE7D8"];
+
+    Product_Context -> Price;
+    Product_Context -> Demand;
+
+    Store_Context -> Price;
+    Store_Context -> Demand;
+
+    Time_Context -> Price;
+    Time_Context -> Demand;
+
+    Historical_Demand -> Price;
+    Historical_Demand -> Demand;
+
+    Promotion_Context -> Price;
+    Promotion_Context -> Demand;
+
+    Price -> Demand;
+}
